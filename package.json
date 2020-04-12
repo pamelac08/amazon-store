@@ -17,6 +17,9 @@
   },
   "homepage": "https://github.com/pamelac08/amazon-store#readme",
   "dependencies": {
-    "inquirer": "^7.1.0"
+    "cli-table": "^0.3.1",
+    "inquirer": "^7.1.0",
+    "sql": "^0.78.0",
+    "table": "^5.4.6"
   }
 }

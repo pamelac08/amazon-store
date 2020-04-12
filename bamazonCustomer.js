@@ -1,14 +1,120 @@
-// Running this application will first display all of the items available for sale. Include the ids, names, and prices of products for sale.
+var mysql = require("mysql");
+var inquirer = require("inquirer");
+var Table = require("cli-table");
 
-// The app should then prompt users with two messages.
+var connection = mysql.createConnection({
+  host: "localhost",
+  port: 3306,
+  user: "root",
+  password: "",
+  database: "bamazon_db"
+});
 
-// The first should ask them the ID of the product they would like to buy.
-// The second message should ask how many units of the product they would like to buy.
-// Once the customer has placed the order, your application should check if your store has enough of the product to meet the customer's request.
+connection.connect(function(err) {
+  if (err) throw err;
+  showProducts();
+});
 
-// If not, the app should log a phrase like Insufficient quantity!, and then prevent the order from going through.
-// However, if your store does have enough of the product, you should fulfill the customer's order.
+function showProducts() {
+  var tableAll = new Table({
+    head: ["Product Id", "Product Name", "Price ($)", "Quantity in Stock"]
+  });
 
-// This means updating the SQL database to reflect the remaining quantity.
-// Once the update goes through, show the customer the total cost of their purchase.
+  connection.query("SELECT * FROM products", function(err, res) {
+    if (err) throw err;
 
+    console.log("\n" + "Products Available for Purchase: \n");
+    for (let i = 0; i < res.length; i++) {
+      tableAll.push([
+        res[i].item_id,
+        res[i].product_name,
+        res[i].price,
+        res[i].stock_quantity
+      ]);
+    }
+    console.log(tableAll.toString());
+
+    console.log("\n");
+    promptCustomer(res);
+  });
+}
+
+function promptCustomer(results) {
+  inquirer
+    .prompt([
+      {
+        name: "id",
+        message: "What is the id of the product you would like to buy?"
+      },
+      {
+        name: "quantity",
+        message: "How many you would like to buy?"
+      }
+    ])
+    .then(function(answer) {
+      item = parseInt(answer.id);
+      quantity = parseFloat(answer.quantity);
+
+      var chosenItem;
+      for (var i = 0; i < results.length; i++) {
+        if (item === results[i].item_id) {
+          chosenItem = results[i];
+        }
+      }
+
+      if (chosenItem.stock_quantity === 0) {
+        console.log("Sorry, we are all out of stock of that item.");
+        console.log("\n");
+        reset();
+      } else if (chosenItem.stock_quantity - quantity < 0) {
+        console.log("there are not enough in stock at this time");
+        console.log("\n");
+        reset();
+      } else if (
+        quantity <= chosenItem.stock_quantity &&
+        chosenItem.stock_quantity - quantity >= 0
+      ) {
+        connection.query(
+          "UPDATE products SET ? WHERE ?",
+          [
+            {
+              stock_quantity: chosenItem.stock_quantity - quantity,
+              product_sales:
+                chosenItem.product_sales + chosenItem.price * quantity
+            },
+            {
+              item_id: chosenItem.item_id
+            }
+          ],
+          function(error) {
+            if (error) throw err;
+            console.log("Order placed successfully!");
+            console.log(
+              "Your total is:  $" + chosenItem.price * quantity + "\n"
+            );
+            console.log("\n");
+            reset();
+          }
+        );
+      }
+    });
+}
+
+function reset() {
+  inquirer
+    .prompt([
+      {
+        type: "confirm",
+        name: "reset",
+        message: "Would you like to order another item?"
+      }
+    ])
+    .then(function(answer) {
+      if (answer.reset) {
+        showProducts();
+      } else {
+        console.log("ok, see you next time!");
+        connection.end();
+      }
+    });
+}
