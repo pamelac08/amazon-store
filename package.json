@@ -18,6 +18,8 @@
   "homepage": "https://github.com/pamelac08/amazon-store#readme",
   "dependencies": {
     "cli-table": "^0.3.1",
+    "cli-table3": "^0.6.0",
+    "colors": "^1.4.0",
     "inquirer": "^7.1.0",
     "sql": "^0.78.0",
     "table": "^5.4.6"
